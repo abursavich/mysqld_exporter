@@ -14,6 +14,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
@@ -214,12 +215,22 @@ func testLandingPage(t *testing.T, data bin) {
 		data.path,
 		"--web.listen-address", fmt.Sprintf(":%d", data.port),
 	)
+	stdout := bytes.NewBuffer(nil)
+	stderr := bytes.NewBuffer(nil)
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
 	cmd.Env = append(os.Environ(), "DATA_SOURCE_NAME=127.0.0.1:3306")
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
-	defer cmd.Wait()
-	defer cmd.Process.Kill()
+	defer func() {
+		cmd.Process.Kill()
+		cmd.Wait()
+		if t.Failed() {
+			t.Logf("%s\n", stdout.Bytes())
+			t.Logf("%s\n", stderr.Bytes())
+		}
+	}()
 
 	// Get the main page.
 	urlToGet := fmt.Sprintf("http://127.0.0.1:%d", data.port)
