@@ -223,7 +223,7 @@ func testLandingPage(t *testing.T, data bin) {
 
 	// Get the main page.
 	urlToGet := fmt.Sprintf("http://127.0.0.1:%d", data.port)
-	body, err := waitForBody(urlToGet)
+	body, err := waitForBody(ctx, urlToGet)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -244,13 +244,13 @@ func testLandingPage(t *testing.T, data bin) {
 
 // waitForBody is a helper function which makes http calls until http server is up
 // and then returns body of the successful call.
-func waitForBody(urlToGet string) (body []byte, err error) {
+func waitForBody(ctx context.Context, urlToGet string) (body []byte, err error) {
 	tries := 60
 
 	// Get data, but we need to wait a bit for http server.
 	for i := 0; i <= tries; i++ {
 		// Try to get web page.
-		body, err = getBody(urlToGet)
+		body, err = getBody(ctx, urlToGet)
 		if err == nil {
 			return body, err
 		}
@@ -275,8 +275,12 @@ func waitForBody(urlToGet string) (body []byte, err error) {
 }
 
 // getBody is a helper function which retrieves http body from given address.
-func getBody(urlToGet string) ([]byte, error) {
-	resp, err := http.Get(urlToGet)
+func getBody(ctx context.Context, urlToGet string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", urlToGet, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
