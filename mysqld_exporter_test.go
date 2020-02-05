@@ -219,7 +219,7 @@ func testLandingPage(t *testing.T, data bin) {
 	stderr := bytes.NewBuffer(nil)
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
-	cmd.Env = append(os.Environ(), "DATA_SOURCE_NAME=127.0.0.1:3306")
+	cmd.Env = append(os.Environ(), "DATA_SOURCE_NAME=tcp(127.0.0.1:3306)/dbname")
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}

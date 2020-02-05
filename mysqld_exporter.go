@@ -60,6 +60,14 @@ var (
 		"tls.insecure-skip-verify",
 		"Ignore certificate and server verification when using a tls connection.",
 	).Bool()
+	exporterLockWaitTimeout = kingpin.Flag(
+		"exporter.lock_wait_timeout",
+		"Set a lock_wait_timeout on the connection to avoid long metadata locking.",
+	).Default("2").Int()
+	exporterSlowLogFilter = kingpin.Flag(
+		"exporter.log_slow_filter",
+		"Add a log_slow_filter to avoid slow query logging of scrapes. NOTE: Not supported by Oracle MySQL.",
+	).Default("false").Bool()
 	dsn string
 )
 
@@ -271,6 +279,19 @@ func main() {
 			os.Exit(1)
 		}
 	}
+	cfg, err := mysql.ParseDSN(dsn)
+	if err != nil {
+		level.Info(logger).Log("msg", "Invalid DSN", "err", err)
+		os.Exit(1)
+	}
+	if cfg.Params == nil {
+		cfg.Params = make(map[string]string)
+	}
+	if *exporterSlowLogFilter {
+		cfg.Params["log_slow_filter"] = "'tmp_table_on_disk,filesort_on_disk'"
+	}
+	cfg.Params["lock_wait_timeout"] = fmt.Sprint(*exporterLockWaitTimeout)
+	dsn = cfg.FormatDSN()
 
 	// Register only scrapers enabled by flag.
 	enabledScrapers := []collector.Scraper{}
